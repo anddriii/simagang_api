@@ -1,0 +1,41 @@
+### Login Admin
+POST http://127.0.0.1:8000/api/auth/login
+Accept: application/json
+Content-Type: application/json
+
+{
+  "email": "admin@simagang.test",
+  "password": "password"
+}
+
+### Profile
+GET http://127.0.0.1:8000/api/auth/profile
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### List Companies
+GET http://127.0.0.1:8000/api/companies
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### Create Application sebagai Mahasiswa
+POST http://127.0.0.1:8000/api/internship-applications
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer {{student_token}}
+
+{
+  "company_id": 1,
+  "period_id": 1,
+  "reason": "Ingin belajar backend Laravel API."
+}
+
+### Ask Chatbot
+POST http://127.0.0.1:8000/api/chatbot/ask
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "message": "Bagaimana cara mengisi logbook?"
+}
