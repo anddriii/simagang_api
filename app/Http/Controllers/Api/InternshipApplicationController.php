@@ -40,17 +40,34 @@ class InternshipApplicationController extends Controller
             'reason' => $validated['reason'],
             'status' => 'pending',
         ]);
-        $data=$request->validate(['company_id'=>'required|exists:companies,id','period_id'=>'required|exists:internship_periods,id','reason'=>'nullable|string']);
-        $app=InternshipApplication::create(['student_id'=>$student->id,'company_id'=>$data['company_id'],'period_id'=>$data['period_id'],'reason'=>$data['reason']??null,'status'=>'pending']);
         return $this->successResponse('Pengajuan magang berhasil dikirim',$app->load(['student.user','company','period']),201);
     }
+    private function publicStorageUrl(string $path): string
+    {
+        return rtrim(config('app.url'), '/') . '/storage/' . ltrim($path, '/');
+    }
     public function show($id){$app=InternshipApplication::with(['student.user','company','period','documents'])->findOrFail($id);return $this->successResponse('Detail pengajuan magang berhasil diambil',$app);}
-    public function uploadDocument(Request $request,$id){
-        $app=InternshipApplication::findOrFail($id);
-        $data=$request->validate(['file'=>'required|file|max:5120','type'=>'required|string|max:100']);
-        $file=$data['file'];$path=$file->store('internship-applications','public');
-        $doc=InternshipApplicationDocument::create(['application_id'=>$app->id,'type'=>$data['type'],'file_name'=>$file->getClientOriginalName(),'file_path'=>$path,'file_url'=>Storage::url($path)]);
-        return $this->successResponse('Dokumen berhasil diupload',$doc,201);
+    public function uploadDocument(Request $request, $id)
+    {
+        $app = InternshipApplication::findOrFail($id);
+
+        $data = $request->validate([
+            'file' => 'required|file|max:5120',
+            'type' => 'required|string|max:100',
+        ]);
+
+        $file = $request->file('file');
+        $path = $file->store('internship-applications', 'public');
+
+        $doc = InternshipApplicationDocument::create([
+            'application_id' => $app->id,
+            'type' => $data['type'],
+            'file_name' => $file->getClientOriginalName(),
+            'file_path' => $path,
+            'file_url' => $this->publicStorageUrl($path),
+        ]);
+
+        return $this->successResponse('Dokumen berhasil diupload', $doc, 201);
     }
     public function approve(Request $request,$id){
         $app=InternshipApplication::findOrFail($id);

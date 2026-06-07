@@ -37,6 +37,11 @@ Route::get('/public/app-config', function () {
     ]);
 });
 
+Route::get('/health', fn () => response()->json([
+    'status' => 'ok',
+    'app' => config('app.name'),
+]));
+
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
 });
@@ -57,8 +62,32 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('students', StudentController::class)->middleware(RoleMiddleware::class . ':admin,lecturer');
     Route::apiResource('lecturers', LecturerController::class)->middleware(RoleMiddleware::class . ':admin');
     Route::apiResource('field-supervisors', FieldSupervisorController::class)->middleware(RoleMiddleware::class . ':admin');
-    Route::apiResource('companies', CompanyController::class);
-    Route::apiResource('internship-periods', InternshipPeriodController::class)->middleware(RoleMiddleware::class . ':admin');
+    Route::get('/companies', [CompanyController::class, 'index'])
+        ->middleware(RoleMiddleware::class . ':admin,student,lecturer,field_supervisor');
+
+    Route::get('/companies/{company}', [CompanyController::class, 'show'])
+        ->middleware(RoleMiddleware::class . ':admin,student,lecturer,field_supervisor');
+
+    Route::middleware(RoleMiddleware::class . ':admin')->group(function () {
+        Route::post('/companies', [CompanyController::class, 'store']);
+        Route::put('/companies/{company}', [CompanyController::class, 'update']);
+        Route::delete('/companies/{company}', [CompanyController::class, 'destroy']);
+    });
+
+    // Periode magang boleh dilihat oleh semua role yang butuh,
+    // terutama mahasiswa untuk kebutuhan pengajuan magang.
+    Route::get('/internship-periods', [InternshipPeriodController::class, 'index'])
+        ->middleware(RoleMiddleware::class . ':admin,student,lecturer,field_supervisor');
+
+    Route::get('/internship-periods/{internshipPeriod}', [InternshipPeriodController::class, 'show'])
+        ->middleware(RoleMiddleware::class . ':admin,student,lecturer,field_supervisor');
+
+    // Hanya admin/prodi yang boleh mengelola periode magang.
+    Route::middleware(RoleMiddleware::class . ':admin')->group(function () {
+        Route::post('/internship-periods', [InternshipPeriodController::class, 'store']);
+        Route::put('/internship-periods/{internshipPeriod}', [InternshipPeriodController::class, 'update']);
+        Route::delete('/internship-periods/{internshipPeriod}', [InternshipPeriodController::class, 'destroy']);
+    });
 
     Route::get('/internship-applications', [InternshipApplicationController::class, 'index']);
     Route::post('/internship-applications', [InternshipApplicationController::class, 'store'])->middleware(RoleMiddleware::class . ':student');
@@ -79,7 +108,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/logbooks/{id}/revise', [LogbookValidationController::class, 'revise'])->middleware(RoleMiddleware::class . ':field_supervisor');
     Route::put('/logbooks/{id}/reject', [LogbookValidationController::class, 'reject'])->middleware(RoleMiddleware::class . ':field_supervisor');
 
-    Route::get('/monitoring/students/{student_id}/progress', [MonitoringController::class, 'studentProgress']);
+    Route::get('/student/progress', [MonitoringController::class, 'myProgress'])
+        ->middleware(RoleMiddleware::class . ':student');
+
+    Route::get('/monitoring/students/{student_id}/progress', [MonitoringController::class, 'studentProgress'])
+        ->middleware(RoleMiddleware::class . ':admin,lecturer,student');
+
     Route::get('/lecturer/monitoring', [MonitoringController::class, 'lecturerMonitoring'])->middleware(RoleMiddleware::class . ':lecturer,admin');
 
     Route::get('/warnings', [WarningController::class, 'index'])->middleware(RoleMiddleware::class . ':admin,lecturer');

@@ -7,9 +7,31 @@ use Illuminate\Http\Request;
 class InternshipPeriodController extends Controller
 {
     use ApiResponse;
-    public function index(Request $request){return $this->paginatedResponse('Data periode magang berhasil diambil',InternshipPeriod::latest()->paginate($request->integer('per_page',10)));}
+    public function index(Request $request)
+    {
+        $query = InternshipPeriod::query()->latest();
+
+        // Mahasiswa hanya melihat periode aktif untuk pengajuan magang
+        if ($request->user()->role === 'student') {
+            $query->where('status', 'active');
+        }
+
+        // Admin tetap bisa filter status kalau perlu
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('search')) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
+
+        return $this->paginatedResponse(
+            'Data periode magang berhasil diambil',
+            $query->paginate($request->integer('per_page', 10))
+        );
+    }
     public function store(Request $request){$data=$request->validate(['name'=>'required|string','start_date'=>'required|date','end_date'=>'required|date|after_or_equal:start_date','status'=>'required|in:active,inactive']);$period=InternshipPeriod::create($data);return $this->successResponse('Periode magang berhasil ditambahkan',$period,201);}
     public function show(InternshipPeriod $internshipPeriod){return $this->successResponse('Detail periode magang berhasil diambil',$internshipPeriod);}
     public function update(Request $request, InternshipPeriod $internshipPeriod){$data=$request->validate(['name'=>'required|string','start_date'=>'required|date','end_date'=>'required|date|after_or_equal:start_date','status'=>'required|in:active,inactive']);$internshipPeriod->update($data);return $this->successResponse('Periode magang berhasil diperbarui',$internshipPeriod);}
-    public function destroy(InternshipPeriod $internshipPeriod){$internshipPeriod->delete();return $this->successResponse('Periode magang berhasil dihapus');}
+    public function destroy(InternshipPeriod $internshipPeriod){$internshipPeriod->delete($internshipPeriod->id);return $this->successResponse('Periode magang berhasil dihapus');}
 }

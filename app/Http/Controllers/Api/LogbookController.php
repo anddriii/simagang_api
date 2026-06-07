@@ -100,11 +100,32 @@ class LogbookController extends Controller
         $logbook->update([...$data,'status'=>'draft']);return $this->successResponse('Logbook berhasil diperbarui',$logbook);
     }
     public function destroy(Logbook $logbook){if(!in_array($logbook->status,['draft','revision'],true)){return $this->errorResponse('Logbook tidak bisa dihapus',null,422);} $logbook->delete(['id' => $logbook->id]);return $this->successResponse('Logbook berhasil dihapus');}
-    public function uploadAttachment(Request $request,$id){
-        $logbook=Logbook::findOrFail($id);$data=$request->validate(['file'=>'required|file|mimes:jpg,jpeg,png,pdf|max:5120']);
-        $file=$data['file'];$path=$file->store('logbooks','public');
-        $att=LogbookAttachment::create(['logbook_id'=>$logbook->id,'file_name'=>$file->getClientOriginalName(),'file_path'=>$path,'file_url'=>Storage::url($path)]);
-        return $this->successResponse('Bukti kegiatan berhasil diupload',$att,201);
+
+    private function publicStorageUrl(string $path): string
+    {
+        return rtrim(config('app.url'), '/') . '/storage/' . ltrim($path, '/');
     }
+
+    public function uploadAttachment(Request $request, $id)
+    {
+        $logbook = Logbook::findOrFail($id);
+
+        $data = $request->validate([
+            'file' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
+        ]);
+
+        $file = $request->file('file');
+        $path = $file->store('logbooks', 'public');
+
+        $att = LogbookAttachment::create([
+            'logbook_id' => $logbook->id,
+            'file_name' => $file->getClientOriginalName(),
+            'file_path' => $path,
+            'file_url' => $this->publicStorageUrl($path),
+        ]);
+
+        return $this->successResponse('Bukti kegiatan berhasil diupload', $att, 201);
+    }
+
     public function submit($id){$logbook=Logbook::findOrFail($id);$logbook->update(['status'=>'pending','submitted_at'=>now()]);return $this->successResponse('Logbook berhasil dikirim untuk validasi',$logbook);}
 }
