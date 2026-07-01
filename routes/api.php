@@ -130,9 +130,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/notifications/{id}/read', [NotificationController::class, 'read']);
     Route::put('/notifications/read-all', [NotificationController::class, 'readAll']);
 
-    Route::post('/chatbot/ask', [ChatbotController::class, 'ask']);
-    Route::get('/chatbot/history', [ChatbotController::class, 'history']);
-    Route::get('/chatbot/conversations/{id}', [ChatbotController::class, 'conversation']);
+    Route::post('/chatbot/ask', [ChatbotController::class, 'ask'])
+            ->middleware('throttle:10,1');
+
+        Route::get('/chatbot/history', [
+            ChatbotController::class,
+            'history',
+        ]);
+
+        Route::get('/chatbot/conversations/{id}', [
+            ChatbotController::class,
+            'conversation',
+        ]);;
 
     Route::apiResource('/chatbot/knowledge-bases', KnowledgeBaseController::class)->middleware(RoleMiddleware::class . ':admin');
 
